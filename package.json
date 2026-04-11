@@ -1,0 +1,21 @@
+{
+  "name": "amplify-cdk-infra-base",
+  "version": "1.0.0",
+  "description": "CDK stack to provision S3 buckets and a Cognito User Pool for an AWS Amplify app",
+  "scripts": {
+    "build": "tsc",
+    "deploy": "npx cdk deploy",
+    "destroy": "npx cdk destroy",
+    "diff": "npx cdk diff",
+    "synth": "npx cdk synth"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "aws-cdk": "^2.130.0",
+    "typescript": "^5.4.0"
+  },
+  "dependencies": {
+    "aws-cdk-lib": "^2.130.0",
+    "constructs": "^10.0.0"
+  }
+}

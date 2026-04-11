@@ -1,0 +1,24 @@
+# CDK compiled output (TypeScript -> JavaScript)
+bin/*.js
+bin/*.d.ts
+bin/*.js.map
+lib/*.js
+lib/*.d.ts
+lib/*.js.map
+
+# CDK artifacts
+cdk.out/
+cdk.context.json
+
+# Dependencies
+node_modules/
+
+# Your personal config — NEVER commit this, use config.example.ts as your starting point
+bin/config.ts
+
+# OS
+.DS_Store
+
+# IDE
+.vscode/
+.idea/
