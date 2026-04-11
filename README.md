@@ -37,7 +37,7 @@ You'll be prompted for your AWS Access Key ID, Secret Access Key, and region. Ge
 ### 1. Clone the repo
 
 ```bash
-git clone https://github.com/ltm893/amplify-cdk-infra-base.git
+git clone https://github.com/YOUR_USERNAME/amplify-cdk-infra-base.git
 cd amplify-cdk-infra-base
 ```
 

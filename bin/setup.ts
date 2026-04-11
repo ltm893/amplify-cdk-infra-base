@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import "source-map-support/register";
 import * as cdk from "aws-cdk-lib";
-import { DlivSetupStack } from "../lib/setup-stack";
+import { AmplifyInfraStack } from "../lib/setup-stack";
 import { config } from "./config";
 
 // Generate a timestamp string: YYYYMMDDHHMI
@@ -15,7 +15,7 @@ const dateStr   =
 
 const app = new cdk.App();
 
-new DlivSetupStack(app, "DlivSetupStack", {
+new AmplifyInfraStack(app, "AmplifyInfraStack", {
   publicBucketName:  `${config.id}-${dateStr}-public-bucket`,
   privateBucketName: `${config.id}-${dateStr}-private-bucket`,
   awsRegion:         config.awsRegion,

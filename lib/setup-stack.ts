@@ -4,7 +4,7 @@ import * as s3 from "aws-cdk-lib/aws-s3";
 import * as cognito from "aws-cdk-lib/aws-cognito";
 import * as iam from "aws-cdk-lib/aws-iam";
 
-export interface DlivSetupStackProps extends cdk.StackProps {
+export interface AmplifyInfraStackProps extends cdk.StackProps {
   publicBucketName:  string;
   privateBucketName: string;
   awsRegion:         string;
@@ -12,11 +12,11 @@ export interface DlivSetupStackProps extends cdk.StackProps {
   fromEmail:         string;
 }
 
-export class DlivSetupStack extends cdk.Stack {
-  constructor(scope: Construct, id: string, props: DlivSetupStackProps) {
+export class AmplifyInfraStack extends cdk.Stack {
+  constructor(scope: Construct, id: string, props: AmplifyInfraStackProps) {
     super(scope, id, props);
 
-    // ── Public S3 Bucket (photo albums / slideshows) ────────────────────────
+    // ── Public S3 Bucket (publicly readable) ────────────────────────────────
     const publicBucket = new s3.Bucket(this, "PublicBucket", {
       bucketName:          props.publicBucketName,
       blockPublicAccess:   s3.BlockPublicAccess.BLOCK_ACLS,
