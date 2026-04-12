@@ -99,6 +99,19 @@ Copy these into your app's `amplify_outputs.json`.
 
 ---
 
+## Verify your deployment
+
+After deploying, you can check the status of your stack and see all output values at any time:
+
+```bash
+chmod +x scripts/check-stack.sh
+./scripts/check-stack.sh
+```
+
+This will either confirm the stack exists and print all resource IDs, or tell you nothing has been deployed yet.
+
+---
+
 ## Tearing down
 
 If you want to remove the CloudFormation stack (note: buckets and user pool are set to RETAIN and will not be deleted automatically):
