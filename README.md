@@ -47,40 +47,22 @@ cd amplify-cdk-infra-base
 npm install
 ```
 
-### 3. Create your config file
+### 3. Deploy
 
 ```bash
-cp bin/config.example.ts bin/config.ts
+chmod +x scripts/deploy.sh
+./scripts/deploy.sh
 ```
 
-Open `bin/config.ts` and fill in your values:
+The script will prompt you for:
+- **ID/username** — used as a prefix on bucket names (automatically lowercased)
+- **AWS region** — defaults to `us-east-1`
+- **Cognito User Pool name** — defaults to `yourid-app-users`
+- **From email** — address Cognito sends invite emails from
 
-```ts
-export const config = {
-  id:           "yourname",         // used as a prefix on bucket names
-  awsRegion:    "us-east-1",        // AWS region to deploy into
-  userPoolName: "yourname-app-users",
-  fromEmail:    "noreply@yourdomain.com",
-};
-```
+After confirming, it generates `bin/config.ts`, runs `cdk deploy`, and automatically verifies the deployment.
 
-> `bin/config.ts` is in `.gitignore` — your personal values will never be committed.
-
-### 4. Bootstrap CDK (first time only)
-
-If you have never used CDK in your AWS account before, run this once:
-
-```bash
-npx cdk bootstrap
-```
-
-### 5. Deploy
-
-```bash
-npx cdk deploy
-```
-
-You will be asked to approve a security change (the public S3 bucket policy). Type `y` and press Enter.
+> You will be asked to approve a security change (the public S3 bucket policy). Type `y` and press Enter.
 
 ---
 
@@ -89,8 +71,8 @@ You will be asked to approve a security change (the public S3 bucket policy). Ty
 The terminal will print output values like this:
 
 ```
-PublicBucketName  = yourname-202604111059-public-bucket
-PrivateBucketName = yourname-202604111059-private-bucket
+PublicBucketName  = yourname-202604120947-public-bucket
+PrivateBucketName = yourname-202604120947-private-bucket
 UserPoolId        = us-east-1_AbCdEfGh
 UserPoolClientId  = abc123xyz
 ```
@@ -99,25 +81,48 @@ Copy these into your app's `amplify_outputs.json`.
 
 ---
 
-## Verify your deployment
+## Check stack status
 
-After deploying, you can check the status of your stack and see all output values at any time:
+At any time you can check whether your stack is deployed and see all resource IDs:
 
 ```bash
 chmod +x scripts/check-stack.sh
 ./scripts/check-stack.sh
 ```
 
-This will either confirm the stack exists and print all resource IDs, or tell you nothing has been deployed yet.
+---
+
+## Add a user
+
+To invite someone to your Cognito User Pool (they will receive an email with a temporary password):
+
+```bash
+chmod +x scripts/create-cognito-user.sh
+./scripts/create-cognito-user.sh
+```
+
+The script looks up your User Pool ID automatically from the deployed stack.
 
 ---
 
 ## Tearing down
 
-If you want to remove the CloudFormation stack (note: buckets and user pool are set to RETAIN and will not be deleted automatically):
+To remove the CloudFormation stack:
 
 ```bash
-npx cdk destroy
+chmod +x scripts/destroy.sh
+./scripts/destroy.sh
 ```
 
-To fully clean up, delete the S3 buckets and Cognito User Pool manually in the AWS Console.
+> ⚠️ S3 buckets and Cognito User Pool are set to **RETAIN** and will not be deleted automatically. You must remove those manually in the AWS Console if needed.
+
+---
+
+## Scripts reference
+
+| Script | Purpose |
+|---|---|
+| `scripts/deploy.sh` | Prompt for config, deploy stack, verify |
+| `scripts/check-stack.sh` | Check stack status and show all resource IDs |
+| `scripts/create-cognito-user.sh` | Invite a new user to the Cognito User Pool |
+| `scripts/destroy.sh` | Tear down the CloudFormation stack and verify |
