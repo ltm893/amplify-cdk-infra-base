@@ -1,12 +1,15 @@
 #!/bin/bash
 # deploy.sh
-# Prompts for config values, generates bin/config.ts, then runs cdk deploy
+# Prompts for config values, generates bin/config.ts, runs cdk deploy,
+# then auto-generates amplify_outputs.json from the stack outputs.
 #
 # Usage:
 #   chmod +x scripts/deploy.sh
 #   ./scripts/deploy.sh
 
 set -e
+
+STACK_NAME="AmplifyInfraStack"
 
 echo ""
 echo "╔══════════════════════════════════════╗"
@@ -24,7 +27,6 @@ if [[ -z "$ID" ]]; then
   echo "❌  ID cannot be empty."
   exit 1
 fi
-# S3 bucket names must be lowercase
 ID=$(echo "$ID" | tr '[:upper:]' '[:lower:]')
 echo "  ℹ️  ID will be used as: $ID (lowercased for S3 compatibility)"
 
@@ -89,6 +91,60 @@ fi
 echo "  Running cdk deploy ..."
 echo ""
 npx cdk deploy
+
+# ── Pull outputs from CloudFormation ─────────────────────────────────────────
+
+echo ""
+echo "  Reading stack outputs ..."
+
+get_output() {
+  aws cloudformation describe-stacks \
+    --stack-name "$STACK_NAME" \
+    --region "$AWS_REGION" \
+    --query "Stacks[0].Outputs[?OutputKey=='$1'].OutputValue" \
+    --output text
+}
+
+PUBLIC_BUCKET=$(get_output "PublicBucketName")
+PRIVATE_BUCKET=$(get_output "PrivateBucketName")
+USER_POOL_ID=$(get_output "UserPoolId")
+USER_POOL_CLIENT_ID=$(get_output "UserPoolClientId")
+IDENTITY_POOL_ID=$(get_output "IdentityPoolId")
+S3_REGION_URL=$(get_output "S3RegionUrl")
+
+# ── Generate amplify_outputs.json ─────────────────────────────────────────────
+
+echo "  Generating amplify_outputs.json ..."
+
+cat > amplify_outputs.json << EOF
+{
+  "version": "1",
+  "storage": {
+    "aws_region": "${AWS_REGION}",
+    "bucket_name": "${PRIVATE_BUCKET}",
+    "buckets": [
+      {
+        "name": "public",
+        "bucket_name": "${PUBLIC_BUCKET}",
+        "aws_region": "${AWS_REGION}"
+      },
+      {
+        "name": "private",
+        "bucket_name": "${PRIVATE_BUCKET}",
+        "aws_region": "${AWS_REGION}"
+      }
+    ]
+  },
+  "auth": {
+    "aws_region": "${AWS_REGION}",
+    "user_pool_id": "${USER_POOL_ID}",
+    "user_pool_client_id": "${USER_POOL_CLIENT_ID}",
+    "identity_pool_id": "${IDENTITY_POOL_ID}"
+  }
+}
+EOF
+
+echo "  ✅ amplify_outputs.json generated"
 
 # ── Verify ────────────────────────────────────────────────────────────────────
 

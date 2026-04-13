@@ -16,24 +16,30 @@ export class AmplifyInfraStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props: AmplifyInfraStackProps) {
     super(scope, id, props);
 
-    // ── Public S3 Bucket (publicly readable) ────────────────────────────────
+    // ── Public S3 Bucket (publicly readable, authenticated CRUD) ─────────────
     const publicBucket = new s3.Bucket(this, "PublicBucket", {
-      bucketName:          props.publicBucketName,
-      blockPublicAccess:   s3.BlockPublicAccess.BLOCK_ACLS,
-      publicReadAccess:    false,
-      versioned:           false,
-      removalPolicy:       cdk.RemovalPolicy.RETAIN,
+      bucketName:        props.publicBucketName,
+      blockPublicAccess: s3.BlockPublicAccess.BLOCK_ACLS,
+      publicReadAccess:  false,
+      versioned:         false,
+      removalPolicy:     cdk.RemovalPolicy.RETAIN,
       cors: [
         {
           allowedOrigins: ["*"],
-          allowedMethods: [s3.HttpMethods.GET, s3.HttpMethods.HEAD],
+          allowedMethods: [
+            s3.HttpMethods.GET,
+            s3.HttpMethods.HEAD,
+            s3.HttpMethods.PUT,
+            s3.HttpMethods.DELETE,
+          ],
           allowedHeaders: ["*"],
+          exposedHeaders: ["ETag"],
           maxAge:         3000,
         },
       ],
     });
 
-    // Allow anyone to GET objects (photos are public)
+    // Anyone can GET objects (photos are public)
     publicBucket.addToResourcePolicy(
       new iam.PolicyStatement({
         sid:        "PublicReadGetObject",
@@ -103,12 +109,86 @@ export class AmplifyInfraStack extends cdk.Stack {
       preventUserExistenceErrors: true,
     });
 
+    // ── Cognito Identity Pool ─────────────────────────────────────────────────
+    const identityPool = new cognito.CfnIdentityPool(this, "IdentityPool", {
+      identityPoolName:               `${props.userPoolName.replace(/-/g, "_")}_identity_pool`,
+      allowUnauthenticatedIdentities: false,
+      cognitoIdentityProviders: [
+        {
+          clientId:     userPoolClient.userPoolClientId,
+          providerName: userPool.userPoolProviderName,
+        },
+      ],
+    });
+
+    // ── IAM Role for Authenticated Users ─────────────────────────────────────
+    const authenticatedRole = new iam.Role(this, "CognitoAuthenticatedRole", {
+      description: "Role assumed by Cognito Identity Pool authenticated users",
+      assumedBy: new iam.FederatedPrincipal(
+        "cognito-identity.amazonaws.com",
+        {
+          StringEquals: {
+            "cognito-identity.amazonaws.com:aud": identityPool.ref,
+          },
+          "ForAnyValue:StringLike": {
+            "cognito-identity.amazonaws.com:amr": "authenticated",
+          },
+        },
+        "sts:AssumeRoleWithWebIdentity"
+      ),
+    });
+
+    authenticatedRole.addToPolicy(
+      new iam.PolicyStatement({
+        sid:       "PublicBucketCRUD",
+        effect:    iam.Effect.ALLOW,
+        actions:   ["s3:GetObject", "s3:PutObject", "s3:DeleteObject"],
+        resources: [`${publicBucket.bucketArn}/*`],
+      })
+    );
+
+    authenticatedRole.addToPolicy(
+      new iam.PolicyStatement({
+        sid:       "PublicBucketList",
+        effect:    iam.Effect.ALLOW,
+        actions:   ["s3:ListBucket"],
+        resources: [publicBucket.bucketArn],
+      })
+    );
+
+    authenticatedRole.addToPolicy(
+      new iam.PolicyStatement({
+        sid:       "PrivateBucketCRUD",
+        effect:    iam.Effect.ALLOW,
+        actions:   ["s3:GetObject", "s3:PutObject", "s3:DeleteObject"],
+        resources: [`${privateBucket.bucketArn}/*`],
+      })
+    );
+
+    authenticatedRole.addToPolicy(
+      new iam.PolicyStatement({
+        sid:       "PrivateBucketList",
+        effect:    iam.Effect.ALLOW,
+        actions:   ["s3:ListBucket"],
+        resources: [privateBucket.bucketArn],
+      })
+    );
+
+    // ── Attach Role to Identity Pool ─────────────────────────────────────────
+    new cognito.CfnIdentityPoolRoleAttachment(this, "IdentityPoolRoleAttachment", {
+      identityPoolId: identityPool.ref,
+      roles: {
+        authenticated: authenticatedRole.roleArn,
+      },
+    });
+
     // ── Outputs ──────────────────────────────────────────────────────────────
-    new cdk.CfnOutput(this, "PublicBucketName",  { value: publicBucket.bucketName,       description: "Public S3 bucket name" });
-    new cdk.CfnOutput(this, "PrivateBucketName", { value: privateBucket.bucketName,      description: "Private S3 bucket name" });
-    new cdk.CfnOutput(this, "S3RegionUrl",       { value: `https://s3.${props.awsRegion}.amazonaws.com/`, description: "S3 region URL" });
-    new cdk.CfnOutput(this, "UserPoolId",        { value: userPool.userPoolId,           description: "Cognito User Pool ID" });
-    new cdk.CfnOutput(this, "UserPoolClientId",  { value: userPoolClient.userPoolClientId, description: "Cognito App Client ID" });
-    new cdk.CfnOutput(this, "NextStep",          { value: "Copy the output values above into your app's amplify_outputs.json", description: "Next step" });
+    new cdk.CfnOutput(this, "PublicBucketName",     { value: publicBucket.bucketName,            description: "Public S3 bucket name" });
+    new cdk.CfnOutput(this, "PrivateBucketName",    { value: privateBucket.bucketName,           description: "Private S3 bucket name" });
+    new cdk.CfnOutput(this, "S3RegionUrl",          { value: `https://s3.${props.awsRegion}.amazonaws.com/`, description: "S3 region URL" });
+    new cdk.CfnOutput(this, "UserPoolId",           { value: userPool.userPoolId,                description: "Cognito User Pool ID" });
+    new cdk.CfnOutput(this, "UserPoolClientId",     { value: userPoolClient.userPoolClientId,    description: "Cognito App Client ID" });
+    new cdk.CfnOutput(this, "IdentityPoolId",       { value: identityPool.ref,                   description: "Cognito Identity Pool ID" });
+    new cdk.CfnOutput(this, "AuthenticatedRoleArn", { value: authenticatedRole.roleArn,          description: "IAM role ARN for authenticated users" });
   }
 }

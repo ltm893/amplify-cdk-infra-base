@@ -22,3 +22,8 @@ bin/config.ts
 # IDE
 .vscode/
 .idea/
+
+# Python
+.venv/
+__pycache__/
+*.pyc
