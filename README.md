@@ -18,7 +18,7 @@ A CDK stack that provisions the AWS infrastructure needed to run an Amplify web 
 
 You need the following installed on your machine:
 
-- [Node.js](https://nodejs.org/) (v18 or later)
+- [Node.js](https://nodejs.org/) (v18 or later) — required for CDK and npx
 - [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/install-cliv2.html)
 - [Python 3](https://www.python.org/) (for CRUD tests)
 - An AWS account with credentials configured
@@ -80,7 +80,7 @@ After confirming, it:
 
 ## After deploying
 
-`amplify_outputs.json` is written automatically to the project root. Copy it into your app. It contains:
+`amplify_outputs.json` is automatically written to the project root with all resource IDs from the deployment:
 
 ```json
 {
